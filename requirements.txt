@@ -1,0 +1,9 @@
+tensorflow==2.10.0
+keras==2.10.0
+opencv-python
+numpy
+matplotlib
+scikit-learn
+pandas
+pillow
+typing_extensions==4.7.1
