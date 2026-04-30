@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Face Emotion Detection | Real-time Facial Expression Recognition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            line-height: 1.6;
+        }
+
+        /* Header Section */
+        .header {
+            text-align: center;
+            padding: 2rem 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #ffd89b, #c7e9fb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .emotion-badges {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .badge {
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            transition: transform 0.2s;
+        }
+
+        .badge:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Two Column Layout */
+        .demo-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        /* Webcam Card */
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h2 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .webcam-container {
+            position: relative;
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #000;
+            aspect-ratio: 4 / 3;
+        }
+
+        #videoElement, #canvasElement {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #canvasElement {
+            z-index: 10;
+        }
+
+        .controls {
+            margin-top: 1rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button.secondary {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        button.warning {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+            color: #333;
+        }
+
+        .status {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        /* Features List */
+        .features {
+            list-style: none;
+        }
+
+        .features li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .features li::before {
+            content: "🚀";
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 1rem;
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        .code-block pre {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: #d4d4d4;
+        }
+
+        .emotion-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .emotion-item {
+            text-align: center;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+
+        .emotion-item .emoji {
+            font-size: 2rem;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 2rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .demo-section {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            .container {
+                padding: 1rem;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>😊 Face Emotion Detection</h1>
+        <p>Real-time Facial Expression Recognition using Deep Learning (Keras + OpenCV)</p>
+        <div class="emotion-badges">
+            <span class="badge">😠 Angry</span>
+            <span class="badge">🤢 Disgust</span>
+            <span class="badge">😨 Fear</span>
+            <span class="badge">😁 Happy</span>
+            <span class="badge">😐 Neutral</span>
+            <span class="badge">😢 Sad</span>
+            <span class="badge">😲 Surprise</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="demo-section">
+            <!-- Left: Live Demo -->
+            <div class="card">
+                <h2>📹 Live Demo</h2>
+                <div class="webcam-container">
+                    <video id="videoElement" autoplay playsinline></video>
+                    <canvas id="canvasElement"></canvas>
+                </div>
+                <div class="controls">
+                    <button id="startBtn">▶ Start Camera</button>
+                    <button id="stopBtn" class="warning" disabled>⏹ Stop Camera</button>
+                    <button id="snapshotBtn" class="secondary">📸 Screenshot</button>
+                </div>
+                <div class="status" id="statusMsg">
+                    💡 Click "Start Camera" to begin emotion detection
+                </div>
+                <div class="code-block">
+                    <pre><span style="color:#6a9955;"># How it works (Python backend):</span>
+<span style="color:#9cdcfe;">1.</span> Haar Cascade detects faces
+<span style="color:#9cdcfe;">2.</span> Face ROI → grayscale → resize to 48x48
+<span style="color:#9cdcfe;">3.</span> Pre-trained CNN model predicts emotion
+<span style="color:#9cdcfe;">4.</span> Draw bounding box + label + confidence</pre>
+                </div>
+            </div>
+
+            <!-- Right: Project Info -->
+            <div class="card">
+                <h2>📋 Project Overview</h2>
+                <ul class="features">
+                    <li><strong>7 Emotion Classes</strong> - Trained on FER2013 dataset</li>
+                    <li><strong>Real-time Processing</strong> - 30+ FPS on standard webcam</li>
+                    <li><strong>Haar Cascade Face Detection</strong> - Fast & reliable</li>
+                    <li><strong>CNN Architecture</strong> - Keras/TensorFlow 2.10.0</li>
+                    <li><strong>Screenshot Capture</strong> - Press 's' in desktop app</li>
+                    <li><strong>Cross-platform</strong> - Windows/Linux/macOS compatible</li>
+                </ul>
+
+                <h2 style="margin-top: 1.5rem;">🎭 Emotion Confidence Map</h2>
+                <div class="emotion-preview" id="emotionPreview">
+                    <!-- Will be populated by JS -->
+                </div>
+
+                <h2 style="margin-top: 1.5rem;">📦 Tech Stack</h2>
+                <div class="code-block">
+                    <pre>TensorFlow 2.10.0 | Keras 2.10.0 | OpenCV
+NumPy | Matplotlib | scikit-learn
+Haarcascade_frontalface_default.xml</pre>
+                </div>
+
+                <h2 style="margin-top: 1.5rem;">🔧 Installation (Local)</h2>
+                <div class="code-block">
+                    <pre>git clone https://github.com/yourusername/Face_Emotion_Detection
+cd Face_Emotion_Detection
+pip install -r requirements.txt
+python main.py</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- How it works section -->
+        <div class="card" style="margin-top: 1rem;">
+            <h2>🧠 How the Model Works</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem;">📷</div>
+                    <strong>Step 1: Capture</strong>
+                    <p style="font-size: 0.85rem;">Webcam frame → BGR to Grayscale</p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem;">👤</div>
+                    <strong>Step 2: Detect</strong>
+                    <p style="font-size: 0.85rem;">Haar Cascade finds face coordinates</p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem;">🖼</div>
+                    <strong>Step 3: Preprocess</strong>
+                    <p style="font-size: 0.85rem;">Resize 48x48 → Normalize pixels</p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem;">🤖</div>
+                    <strong>Step 4: Predict</strong>
+                    <p style="font-size: 0.85rem;">CNN outputs emotion probabilities</p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem;">🏷</div>
+                    <strong>Step 5: Display</strong>
+                    <p style="font-size: 0.85rem;">Bounding box + Emotion label</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>🔬 Face Emotion Detection | Real-time Facial Expression Recognition | Built with Keras & OpenCV</p>
+        <p style="font-size: 0.8rem; margin-top: 0.5rem;">⚠️ This is a demo frontend — works best with a Python backend server running your trained model</p>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const video = document.getElementById('videoElement');
+        const canvas = document.getElementById('canvasElement');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const snapshotBtn = document.getElementById('snapshotBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        
+        let stream = null;
+        let animationId = null;
+        let isRunning = false;
+        
+        // Emotion labels with emojis
+        const emotions = [
+            { label: 'Angry', emoji: '😠', color: '#e74c3c' },
+            { label: 'Disgust', emoji: '🤢', color: '#2ecc71' },
+            { label: 'Fear', emoji: '😨', color: '#f39c12' },
+            { label: 'Happy', emoji: '😁', color: '#f1c40f' },
+            { label: 'Neutral', emoji: '😐', color: '#95a5a6' },
+            { label: 'Sad', emoji: '😢', color: '#3498db' },
+            { label: 'Surprise', emoji: '😲', color: '#e67e22' }
+        ];
+        
+        // Populate emotion preview
+        const previewDiv = document.getElementById('emotionPreview');
+        emotions.forEach(em => {
+            const div = document.createElement('div');
+            div.className = 'emotion-item';
+            div.innerHTML = `<div class="emoji">${em.emoji}</div><div>${em.label}</div>`;
+            previewDiv.appendChild(div);
+        });
+        
+        // Simulate emotion detection (since this is frontend-only)
+        // In a real implementation, you would send frames to a backend API
+        function simulateEmotionDetection() {
+            if (!isRunning) return;
+            
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                // Set canvas dimensions to match video
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                // Draw video frame to canvas
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Simulate a face detection (draw random rectangle and emotion)
+                // In real implementation, this would be your model's output
+                const width = canvas.width;
+                const height = canvas.height;
+                
+                // Simulate a face region (center of screen)
+                const faceW = Math.min(200, width * 0.4);
+                const faceH = faceW;
+                const faceX = (width - faceW) / 2 + (Math.sin(Date.now() / 1000) * 10);
+                const faceY = (height - faceH) / 2 + (Math.cos(Date.now() / 800) * 5);
+                
+                // Random emotion for demo purposes
+                const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)];
+                const confidence = (0.65 + Math.random() * 0.3).toFixed(2);
+                
+                // Draw bounding box
+                ctx.strokeStyle = randomEmotion.color;
+                ctx.lineWidth = 3;
+                ctx.strokeRect(faceX, faceY, faceW, faceH);
+                
+                // Draw label background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(faceX, faceY - 30, 150, 28);
+                
+                // Draw emotion text
+                ctx.font = 'bold 18px "Segoe UI"';
+                ctx.fillStyle = randomEmotion.color;
+                ctx.fillText(`${randomEmotion.emoji} ${randomEmotion.label} (${confidence})`, faceX + 5, faceY - 8);
+                
+                // Update status
+                statusMsg.innerHTML = `🎭 Detected: ${randomEmotion.label} | Confidence: ${(confidence * 100).toFixed(0)}% | 🤖 Demo Mode (Connect backend for real predictions)`;
+            }
+            
+            animationId = requestAnimationFrame(simulateEmotionDetection);
+        }
+        
+        // Start camera and detection simulation
+        async function startCamera() {
+            try {
+                statusMsg.innerHTML = '⏳ Requesting camera access...';
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                await video.play();
+                
+                isRunning = true;
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                statusMsg.innerHTML = '✅ Camera active | 🎭 Demo mode showing simulated emotion detection | 🔗 Connect your Python backend for real model predictions';
+                
+                // Wait for video metadata to load
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    simulateEmotionDetection();
+                };
+            } catch (err) {
+                console.error('Camera error:', err);
+                statusMsg.innerHTML = '❌ Cannot access camera. Please check permissions and ensure no other app is using it.';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        }
+        
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            isRunning = false;
+            video.srcObject = null;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width || 640, canvas.height || 480);
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Arial';
+            ctx.fillText('Camera stopped', 20, 50);
+            
+            statusMsg.innerHTML = '⏹ Camera stopped. Click "Start Camera" to resume.';
+        }
+        
+        function takeSnapshot() {
+            if (!isRunning || !canvas.width) {
+                statusMsg.innerHTML = '⚠️ Start camera first before taking a screenshot';
+                return;
+            }
+            
+            // Create a temporary link to download the canvas image
+            const link = document.createElement('a');
+            link.download = `emotion_snapshot_${new Date().toISOString().slice(0,19)}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            statusMsg.innerHTML = '📸 Screenshot saved! Check your downloads folder.';
+            
+            // Flash effect
+            canvas.style.transition = 'opacity 0.1s';
+            canvas.style.opacity = '0.5';
+            setTimeout(() => { canvas.style.opacity = '1'; }, 100);
+        }
+        
+        // Event listeners
+        startBtn.addEventListener('click', startCamera);
+        stopBtn.addEventListener('click', stopCamera);
+        snapshotBtn.addEventListener('click', takeSnapshot);
+        
+        // Initial canvas setup
+        canvas.width = 640;
+        canvas.height = 480;
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '14px Arial';
+        ctx.fillText('Ready to start camera', 20, 50);
+        
+        // Note for users
+        console.log('Face Emotion Detection Demo - Frontend Only');
+        console.log('For real model predictions, deploy the Python backend with your trained model.h5');
+    </script>
+</body>
+</html>
